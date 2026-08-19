@@ -72,7 +72,7 @@ so install inside it first):
 ```bash
 cd playground
 npm install
-node seed.js          # admin user + read-only API token + sample articles
+node seed.js          # admin user + read-only API token + MCP Viz config + sample articles
 cp .env.example .env  # then set MCP_VIZ_LLM_*
 npm run develop
 ```

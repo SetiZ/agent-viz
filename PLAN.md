@@ -297,6 +297,12 @@ Notes recorded while verifying M4 (playground):
 - M4's `/run` guard: without `llmApiKey` configured the agent service emits an
   SSE `error` event with code `CONFIG_INCOMPLETE` (validates routing +
   permissions + SSE without needing an LLM).
+- **Auth footguns (fixed post-M7)**: Strapi's admin API tokens are 256 chars but
+  Strapi `string` attributes cap at 255 — `settings` secrets are now `text`.
+  `seed.js` writes `mcpUrl` + `adminToken` straight into the plugin's settings
+  store so a fresh clone needs no manual token copy; the agent service now
+  fails fast with a readable `CONFIG_INCOMPLETE` when `adminToken` is missing
+  instead of surfacing the raw MCP `-32000 Authentication required` 401.
 
 ## Risks & notes
 

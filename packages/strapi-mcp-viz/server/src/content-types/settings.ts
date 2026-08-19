@@ -13,9 +13,9 @@ export default {
     },
     attributes: {
       mcpUrl: { type: 'string' },
-      adminToken: { type: 'string', private: true },
+      adminToken: { type: 'text', private: true },
       llmBaseUrl: { type: 'string' },
-      llmApiKey: { type: 'string', private: true },
+      llmApiKey: { type: 'text', private: true },
       llmModel: { type: 'string' },
     },
   },

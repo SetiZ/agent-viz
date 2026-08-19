@@ -84,12 +84,24 @@ async function ensureArticles(strapi) {
   console.log(`[seed] seeded ${ARTICLES.length} articles`);
 }
 
+/** Configures MCP Viz (mcpUrl + adminToken) so the plugin works out of the box. */
+async function ensureVizSettings(strapi, token) {
+  const plugin = strapi.plugin('strapi-mcp-viz');
+  if (!plugin) return;
+  const config = plugin.service('config');
+  if (!config?.set) return;
+  const mcpUrl = `http://localhost:${strapi.config.get('server.port', 1337)}/mcp`;
+  await config.set({ mcpUrl, adminToken: token });
+  console.log(`[seed] configured MCP Viz settings (mcpUrl=${mcpUrl})`);
+}
+
 async function main() {
   const strapi = await createStrapi({ autoReload: false, serveAdminPanel: false }).load();
   try {
     const admin = await ensureAdminUser(strapi);
     const token = await ensureAdminToken(strapi, admin);
     await ensureArticles(strapi);
+    await ensureVizSettings(strapi, token);
     console.log(`[seed] done. MCP token: ${token}`);
   } finally {
     await strapi.destroy();

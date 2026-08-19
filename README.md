@@ -42,8 +42,8 @@ from the root workspace), so it needs its own install before the first run:
 ```bash
 cd playground
 npm install
-node seed.js          # admin user + read-only API token + sample articles
-cp .env.example .env  # then set MCP_VIZ_LLM_* (and the seeded token)
+node seed.js          # admin user + read-only API token + MCP Viz config + sample articles
+cp .env.example .env  # then set MCP_VIZ_LLM_*
 npm run develop
 ```
 

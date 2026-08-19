@@ -40,8 +40,8 @@ false`, `autoReload: false`) used for scripted runs against the plugin's HTTP
 Copy `.env.example` to `.env` and fill in at minimum the app secrets. The MCP
 server is controlled by `MCP_ENABLED` (`config/server.js`).
 
-MCP Viz reads its settings from the plugin's config store, which falls back to
-these env overrides:
+MCP Viz reads its settings from the plugin's config store (seeded by
+`seed.js`), which falls back to these env overrides:
 
 | Variable               | Meaning                                              |
 | ---------------------- | ---------------------------------------------------- |
@@ -61,11 +61,11 @@ categories and publish dates) so there is real data to ask about. It is
 idempotent — safe to re-run.
 
 It also creates a super-admin user (`admin@mcpviz.local` / `McpViz!12345`) and a
-read-only **admin API token**, writing the token's plaintext to `.mcp-token`.
-The plugin reads its token from the config store / `MCP_VIZ_ADMIN_TOKEN` env
-var, **not** from `.mcp-token` — so after seeding, copy the value from
-`.mcp-token` into `MCP_VIZ_ADMIN_TOKEN` in `.env` (or paste it into the
-plugin's Settings page).
+read-only **admin API token**, writing the token's plaintext to `.mcp-token`,
+and **configures MCP Viz automatically** — it stores `mcpUrl` and `adminToken`
+in the plugin's settings, so the plugin works right after seeding (no manual
+copy). If you ever override via `MCP_VIZ_ADMIN_TOKEN` in `.env`, note that the
+env var wins over the stored value.
 
 ## Using the MCP server externally
 

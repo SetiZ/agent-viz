@@ -64,6 +64,11 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
           'MCP URL is not configured. Point mcpUrl at your Strapi /mcp endpoint.'
         );
       }
+      if (!config.adminToken) {
+        throw new AgentConfigError(
+          'MCP admin token is not configured. Set adminToken in the plugin settings (or MCP_VIZ_ADMIN_TOKEN).'
+        );
+      }
 
       const registry = await plugin.service('mcp-client').getRegistry();
       const transport = await plugin.service('mcp-client').createTransport();
