@@ -36,12 +36,20 @@ npm run build --workspace strapi-mcp-viz   # compile the plugin to dist/
 
 ### Run the playground
 
+The playground is a standalone Strapi app (its own `node_modules`, separate
+from the root workspace), so it needs its own install before the first run:
+
 ```bash
-npm run develop --workspace playground
+cd playground
+npm install
+node seed.js          # admin user + read-only API token + sample articles
+cp .env.example .env  # then set MCP_VIZ_LLM_* (and the seeded token)
+npm run develop
 ```
 
-The playground boots Strapi on `http://localhost:1337`, seeds sample articles,
-and enables the MCP server. Log in to the admin and open **MCP Viz**.
+The playground boots Strapi on `http://localhost:1337` and enables the MCP
+server. Log in to the admin (`admin@mcpviz.local` / `McpViz!12345`) and open
+**MCP Viz**.
 
 Point the plugin at your LLM by setting these in `playground/.env` (see
 `playground/.env.example`):

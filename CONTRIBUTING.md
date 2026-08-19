@@ -19,18 +19,22 @@ npm run build --workspace strapi-mcp-viz
 The plugin must be rebuilt (`dist/`) before the playground or a Strapi app will
 pick up admin/server changes — `config/plugins.js` resolves it by path.
 
+The **playground is a separate npm install** — root `npm install` does not cover
+it. On a fresh clone, run `npm install` inside `playground/` too, then
+`node seed.js` and `cp .env.example .env` (see the playground README).
+
 ## Commands
 
-| Command                                        | What it does                                  |
-| ---------------------------------------------- | --------------------------------------------- |
-| `npm test`                                     | Runs all vitest suites (core + plugin admin). |
-| `npx vitest run packages/core`                 | Core tests only (Node env).                   |
-| `npx vitest run packages/strapi-mcp-viz/admin` | Admin UI tests only (jsdom).                  |
-| `npm run typecheck`                            | Core typecheck.                               |
-| `npm run typecheck --workspace strapi-mcp-viz` | Plugin server + admin typecheck.              |
-| `npm run lint`                                 | ESLint across the repo.                       |
-| `npm run format:check` / `npm run format`      | Prettier check / write.                       |
-| `npm run develop --workspace playground`       | Boot the Strapi playground.                   |
+| Command                                        | What it does                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------- |
+| `npm test`                                     | Runs all vitest suites (core + plugin admin).                       |
+| `npx vitest run packages/core`                 | Core tests only (Node env).                                         |
+| `npx vitest run packages/strapi-mcp-viz/admin` | Admin UI tests only (jsdom).                                        |
+| `npm run typecheck`                            | Core typecheck.                                                     |
+| `npm run typecheck --workspace strapi-mcp-viz` | Plugin server + admin typecheck.                                    |
+| `npm run lint`                                 | ESLint across the repo.                                             |
+| `npm run format:check` / `npm run format`      | Prettier check / write.                                             |
+| `npm run develop --prefix playground`          | Boot the Strapi playground (or `cd playground && npm run develop`). |
 
 ## Conventions
 

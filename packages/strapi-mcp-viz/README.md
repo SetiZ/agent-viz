@@ -66,14 +66,20 @@ npm run lint
 npx vitest run                              # core + plugin tests
 ```
 
-Run the included playground app to try it end-to-end:
+Run the included playground app to try it end-to-end (it's a standalone app,
+so install inside it first):
 
 ```bash
-npm run develop --workspace playground      # boots Strapi + seeds content
+cd playground
+npm install
+node seed.js          # admin user + read-only API token + sample articles
+cp .env.example .env  # then set MCP_VIZ_LLM_*
+npm run develop
 ```
 
-Set `MCP_VIZ_LLM_*` in `playground/.env` to point at your LLM endpoint, then
-log in to the admin and open **MCP Viz**.
+Then set `MCP_VIZ_LLM_*` in `playground/.env` to point at your LLM endpoint,
+log in to the admin (`admin@mcpviz.local` / `McpViz!12345`) and open
+**MCP Viz**.
 
 ## Security notes
 
