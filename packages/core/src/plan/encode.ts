@@ -3,7 +3,7 @@ import type { SortField } from '../intent';
 
 /**
  * Deterministic encoding of the filter AST into Strapi's REST filter syntax,
- * the shape the Strapi MCP `find_*` tools accept. Values are copied verbatim
+ * the shape the Strapi MCP `list_*`/`get_*` read tools accept. Values are copied verbatim
  * from validated filters — nothing is invented here.
  */
 

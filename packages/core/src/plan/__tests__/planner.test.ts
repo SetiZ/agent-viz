@@ -49,6 +49,44 @@ function baseIntent(overrides: Partial<Intent> = {}): Intent {
   };
 }
 
+function makeStrapi52Registry(): ToolRegistry {
+  const article: ContentTypeSchema = {
+    uid: 'api::article.article',
+    label: 'Article',
+    fields: {
+      title: { type: 'string' },
+      views: { type: 'number' },
+      status: { type: 'enumeration', enum: ['draft', 'published'] },
+      publishedAt: { type: 'datetime' },
+      createdAt: { type: 'datetime' },
+    },
+  };
+  const schemas = new Map<string, ContentTypeSchema>([[article.uid, article]]);
+  const tools: ToolDescriptor[] = [
+    {
+      name: 'list_article',
+      contentType: article.uid,
+      description: 'List articles',
+      permission: 'plugin::content-manager.explorer.read',
+      inputSchema: z.object({}),
+    },
+    {
+      name: 'get_article',
+      contentType: article.uid,
+      description: 'Get one article',
+      permission: 'plugin::content-manager.explorer.read',
+      inputSchema: z.object({}),
+    },
+  ];
+  return {
+    contentTypes: () => [...schemas.values()],
+    contentType: (uid) => schemas.get(uid),
+    findTool: (name) => tools.find((entry) => entry.name === name),
+    toolsForContentType: (uid) => tools.filter((entry) => entry.contentType === uid),
+    tools: () => [...tools],
+  };
+}
+
 describe('planQuery', () => {
   it('plans a single read step against the read tool', () => {
     const plan = planQuery(baseIntent(), makeRegistry());
@@ -199,6 +237,12 @@ describe('planQuery', () => {
     } catch (error) {
       expect((error as PlanError).code).toBe('NO_READ_TOOL');
     }
+  });
+
+  it('plans against the Strapi 5.52 list_* tool, preferring it over get_*', () => {
+    const plan = planQuery(baseIntent(), makeStrapi52Registry());
+    expect(plan.steps[0]!.tool).toBe('list_article');
+    expect(plan.steps[0]!.permission).toBe('plugin::content-manager.explorer.read');
   });
 
   it('carries the clamped, effective intent', () => {

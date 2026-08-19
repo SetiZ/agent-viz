@@ -14,11 +14,14 @@ export interface RegistryBuildOptions {
   permissionFor: (contentType: string) => string;
   /** Map a tool name to a content-type uid. Defaults to a name-based heuristic. */
   resolveContentType?: (toolName: string) => string | undefined;
-  /** Only register read tools (`find_*`). */
+  /** Only register read tools (`list_*`/`get_*`/`find_*`). */
   readOnly?: boolean;
 }
 
-const READ_PREFIXES = ['find_', 'find_one_'];
+const READ_PREFIXES = ['list_', 'get_', 'find_', 'find_one_'];
+
+/** Read operation names Strapi MCP uses as tool-name prefixes. */
+const READ_OPS = ['list', 'get', 'find_one', 'find'];
 
 export function isReadTool(name: string): boolean {
   return READ_PREFIXES.some((prefix) => name.startsWith(prefix));
@@ -62,9 +65,22 @@ function resolveContentTypeByToolName(
   toolName: string,
   contentTypes: ContentTypeSchema[],
 ): string | undefined {
-  const collectionName = toolName.split('_').slice(1).join('_');
-  if (!collectionName) return undefined;
-  return contentTypes.find((entry) => entry.uid.split('.').at(-1) === collectionName)?.uid;
+  const slug = toolName.replace(new RegExp(`^(${READ_OPS.join('|')})_`), '');
+  if (!slug || slug === toolName) return undefined;
+  return contentTypes.find((entry) => mcpToolSlug(entry.uid) === slug)?.uid;
+}
+
+/**
+ * Mirrors Strapi's `slugifyUidForMcpToolName` (`content-manager/mcp/utils.js`):
+ * `api::article.article` → `article`, `api::blog-post.article` → `blog-post`,
+ * `plugin::users-permissions.user` → `plugin-users_permissions_user`.
+ */
+export function mcpToolSlug(uid: string): string | undefined {
+  const [namespace, modelName] = uid.split('::');
+  if (!namespace || !modelName) return undefined;
+  const parts = modelName.split('.').map((part) => part.toLowerCase());
+  if (namespace === 'api') return parts[0];
+  return `${namespace.toLowerCase()}-${parts.join('_')}`;
 }
 
 function zodFromMcpSchema(schema?: Record<string, unknown>): z.ZodType<unknown> {
@@ -76,7 +92,7 @@ function zodFromMcpSchema(schema?: Record<string, unknown>): z.ZodType<unknown> 
   }
 }
 
-/** Parses the JSON text content of a Strapi `find_*` tool response. */
+/** Parses the JSON text content of a Strapi `list_*`/`get_*` tool response. */
 export function parseFindResponse(text: string): { data: unknown[]; total?: number } {
   let json: unknown;
   try {

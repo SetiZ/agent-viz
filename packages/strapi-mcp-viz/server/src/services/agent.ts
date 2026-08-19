@@ -19,7 +19,11 @@ export class AgentConfigError extends Error {
 }
 
 export default ({ strapi }: { strapi: Core.Strapi }) => {
-  const hasContentTypePermission = async (user: UserContext, action: string): Promise<boolean> => {
+  const hasContentTypePermission = async (
+    user: UserContext,
+    action: string,
+    subject?: string
+  ): Promise<boolean> => {
     try {
       const permissionService = strapi.service('admin::permission') as {
         engine?: {
@@ -30,7 +34,9 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       const { engine } = permissionService;
       if (!engine?.generateUserAbility || !engine.checkMany) return false;
       const ability = await engine.generateUserAbility(user);
-      const results = await engine.checkMany(ability, [{ action }]);
+      const results = await engine.checkMany(ability, [
+        { action, ...(subject ? { subject } : {}) },
+      ]);
       return Array.isArray(results) && results[0] === true;
     } catch {
       return false;
@@ -79,8 +85,8 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
         model: config.llmModel,
       });
 
-      const check: PermissionCheck = async ({ user: requestUser, permission }) => {
-        return hasContentTypePermission(requestUser, permission);
+      const check: PermissionCheck = async ({ user: requestUser, contentType, permission }) => {
+        return hasContentTypePermission(requestUser, permission, contentType);
       };
 
       const orchestrator = new SimpleOrchestrator();

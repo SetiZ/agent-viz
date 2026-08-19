@@ -139,8 +139,12 @@ export function planQuery(
 function findReadTool(registry: ToolRegistry, uid: string): ToolDescriptor | undefined {
   const tools = registry.toolsForContentType(uid);
   return (
-    tools.find((entry) => entry.name.startsWith('find_') && !entry.name.startsWith('find_one_')) ??
-    tools.find((entry) => entry.name.startsWith('find_one_')) ??
+    tools.find(
+      (entry) =>
+        entry.name.startsWith('list_') ||
+        (entry.name.startsWith('find_') && !entry.name.startsWith('find_one_')),
+    ) ??
+    tools.find((entry) => entry.name.startsWith('get_') || entry.name.startsWith('find_one_')) ??
     tools[0]
   );
 }

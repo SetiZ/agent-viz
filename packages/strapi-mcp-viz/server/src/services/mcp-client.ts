@@ -20,9 +20,9 @@ interface ToolsCache {
   at: number;
 }
 
-/** Maps a Strapi content-type uid to the RBAC read action used by the gate. */
-export function permissionFor(contentTypeUid: string): string {
-  return `${contentTypeUid}.read`;
+/** The RBAC read action Strapi's content-manager grants per content type. */
+export function permissionFor(_contentTypeUid: string): string {
+  return 'plugin::content-manager.explorer.read';
 }
 
 /** Extracts a planner-friendly schema from Strapi's content-type attributes. */

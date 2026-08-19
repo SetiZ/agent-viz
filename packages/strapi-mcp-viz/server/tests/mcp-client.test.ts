@@ -55,7 +55,7 @@ describe('contentTypeSchemas', () => {
 });
 
 describe('permissionFor', () => {
-  it('derives the RBAC read action from a content-type uid', () => {
-    expect(permissionFor('api::article.article')).toBe('api::article.article.read');
+  it('maps to the content-manager read action used by the RBAC gate', () => {
+    expect(permissionFor('api::article.article')).toBe('plugin::content-manager.explorer.read');
   });
 });
