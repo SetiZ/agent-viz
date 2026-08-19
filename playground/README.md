@@ -1,61 +1,70 @@
-# 🚀 Getting started with Strapi
+# Playground
 
-Strapi comes with a full featured [Command Line Interface](https://docs.strapi.io/dev-docs/cli) (CLI) which lets you scaffold and manage your project in seconds.
+A throwaway Strapi 5 app used to develop and verify the **MCP Viz** plugin. It
+ships a seeded `article` content type, enables Strapi's built-in MCP server, and
+resolves `strapi-mcp-viz` straight from the monorepo (`config/plugins.js`) so you
+always test the current source.
 
-### `develop`
+## Boot
 
-Start your Strapi application with autoReload enabled. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-develop)
-
-```
-npm run develop
-# or
-yarn develop
-```
-
-### `start`
-
-Start your Strapi application with autoReload disabled. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-start)
-
-```
-npm run start
-# or
-yarn start
+```bash
+npm install               # from the repo root
+npm run build --workspace strapi-mcp-viz
+npm run develop --workspace playground
 ```
 
-### `build`
+Strapi serves on `http://localhost:1337` (admin at `/admin`). The first boot
+creates the SQLite database in `.tmp/`; `seed.js` populates it with sample
+articles when the app starts (`npm run develop` seeds automatically, plain
+`strapi start` does not).
 
-Build your admin panel. [Learn more](https://docs.strapi.io/dev-docs/cli#strapi-build)
+Log in to the admin and open **MCP Viz** (or Settings → MCP Viz to configure the
+plugin).
 
+> `playground/server.js` is a minimal headless launcher (`serveAdminPanel:
+false`, `autoReload: false`) used for scripted runs against the plugin's HTTP
+> routes without the admin UI.
+
+## Configuration
+
+Copy `.env.example` to `.env` and fill in at minimum the app secrets. The MCP
+server is controlled by `MCP_ENABLED` (`config/server.js`).
+
+MCP Viz reads its settings from the plugin's config store, which falls back to
+these env overrides:
+
+| Variable               | Meaning                                              |
+| ---------------------- | ---------------------------------------------------- |
+| `MCP_VIZ_MCP_URL`      | Strapi MCP endpoint (defaults to `{server.url}/mcp`) |
+| `MCP_VIZ_ADMIN_TOKEN`  | Read-only admin API token                            |
+| `MCP_VIZ_LLM_BASE_URL` | OpenAI-compatible `/chat/completions` base URL       |
+| `MCP_VIZ_LLM_API_KEY`  | LLM provider key                                     |
+| `MCP_VIZ_LLM_MODEL`    | LLM model id                                         |
+
+`server.url` is set to `http://localhost:1337` in `config/server.js` — required
+so the plugin can build an absolute MCP URL.
+
+## Seeded content
+
+`seed.js` creates a set of `article` entries (published/unpublished, mixed
+categories and publish dates) so there is real data to ask about. It is
+idempotent — safe to re-run.
+
+## Using the MCP server externally
+
+Strapi exposes its MCP server at `http://localhost:1337/mcp`. Any MCP client can
+point at it (the plugin is just one consumer). For example, in Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "strapi": {
+      "url": "http://localhost:1337/mcp",
+      "headers": { "Authorization": "Bearer <admin-api-token>" }
+    }
+  }
+}
 ```
-npm run build
-# or
-yarn build
-```
 
-## ⚙️ Deployment
-
-Strapi gives you many possible deployment options for your project including [Strapi Cloud](https://cloud.strapi.io). Browse the [deployment section of the documentation](https://docs.strapi.io/dev-docs/deployment) to find the best solution for your use case.
-
-```
-yarn strapi deploy
-```
-
-## 📚 Learn more
-
-- [Resource center](https://strapi.io/resource-center) - Strapi resource center.
-- [Strapi documentation](https://docs.strapi.io) - Official Strapi documentation.
-- [Strapi tutorials](https://strapi.io/tutorials) - List of tutorials made by the core team and the community.
-- [Strapi blog](https://strapi.io/blog) - Official Strapi blog containing articles made by the Strapi team and the community.
-- [Changelog](https://strapi.io/changelog) - Find out about the Strapi product updates, new features and general improvements.
-
-Feel free to check out the [Strapi GitHub repository](https://github.com/strapi/strapi). Your feedback and contributions are welcome!
-
-## ✨ Community
-
-- [Discord](https://discord.strapi.io) - Come chat with the Strapi community including the core team.
-- [Forum](https://forum.strapi.io/) - Place to discuss, ask questions and find answers, show your Strapi project and get feedback or just talk with other Community members.
-- [Awesome Strapi](https://github.com/strapi/awesome-strapi) - A curated list of awesome things related to Strapi.
-
----
-
-<sub>🤫 Psst! [Strapi is hiring](https://strapi.io/careers).</sub>
+Note the MCP endpoint requires `Accept: application/json, text/event-stream`
+(the MCP SDK transports send this; raw curl needs it too).

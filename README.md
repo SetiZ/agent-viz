@@ -75,6 +75,9 @@ consistent between the root workspace and the plugin's nested React 18 copy.
 ## Documentation
 
 - Plugin setup, permissions, and security notes: `packages/strapi-mcp-viz/README.md`
+- Core architecture, SSE contract, block schema, and extension points: `packages/core/README.md`
+- Playground setup, env vars, and connecting external MCP clients: `playground/README.md`
+- Contribution workflow, commands, and conventions: `CONTRIBUTING.md`
 - Full build history and design decisions: `PLAN.md`
 
 ## License
