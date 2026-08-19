@@ -1,0 +1,31 @@
+{
+  "name": "agent-viz",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ask-your-Strapi-data chat with tables and charts, in the Strapi admin.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @mcp-viz/core",
+    "typecheck": "npm run typecheck --workspace @mcp-viz/core",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "eslint": "^9.39.5",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
+  }
+}

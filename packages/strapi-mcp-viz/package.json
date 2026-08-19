@@ -1,0 +1,76 @@
+{
+  "name": "strapi-mcp-viz",
+  "version": "0.1.0",
+  "description": "Ask-your-Strapi-data chat with tables and charts, in the Strapi admin.",
+  "license": "MIT",
+  "keywords": [
+    "strapi",
+    "plugin",
+    "mcp",
+    "natural-language",
+    "analytics",
+    "charts",
+    "chat"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "commonjs",
+  "exports": {
+    "./package.json": "./package.json",
+    "./strapi-server": {
+      "types": "./dist/server/src/index.d.ts",
+      "source": "./server/src/index.ts",
+      "import": "./dist/server/index.mjs",
+      "require": "./dist/server/index.js",
+      "default": "./dist/server/index.js"
+    },
+    "./strapi-admin": {
+      "types": "./dist/admin/src/index.d.ts",
+      "source": "./admin/src/index.ts",
+      "import": "./dist/admin/index.mjs",
+      "require": "./dist/admin/index.js",
+      "default": "./dist/admin/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "strapi-plugin build",
+    "watch": "strapi-plugin watch",
+    "watch:link": "strapi-plugin watch:link",
+    "verify": "strapi-plugin verify",
+    "typecheck": "npm run typecheck:server && npm run typecheck:admin",
+    "typecheck:server": "tsc -p server/tsconfig.json --noEmit",
+    "typecheck:admin": "tsc -p admin/tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@mcp-viz/core": "*",
+    "@strapi/admin": "^5.52.0",
+    "@strapi/design-system": "^2.2.4",
+    "@strapi/icons": "^2.2.4",
+    "react-router-dom": "^6.30.3",
+    "react-intl": "^6.6.2",
+    "styled-components": "^6.0.0"
+  },
+  "devDependencies": {
+    "@strapi/strapi": "^5.52.0",
+    "@strapi/sdk-plugin": "^6.1.1",
+    "@strapi/typescript-utils": "^5.52.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "@strapi/strapi": "^5.52.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "strapi": {
+    "kind": "plugin",
+    "name": "strapi-mcp-viz",
+    "displayName": "MCP Viz",
+    "description": "Natural-language chat over your Strapi content via MCP.",
+    "required": false
+  }
+}

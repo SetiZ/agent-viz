@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+.env
+.env.*
+.DS_Store
+.tmp/
+*.db
+*.sqlite
+*.sqlite3
+playground/.mcp-token
+playground/.strapi/
+.strapi-updater.json
+public/uploads/*
+!public/uploads/.gitkeep
