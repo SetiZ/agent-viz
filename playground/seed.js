@@ -86,13 +86,34 @@ async function ensureArticles(strapi) {
 
 /** Configures MCP Viz (mcpUrl + adminToken) so the plugin works out of the box. */
 async function ensureVizSettings(strapi, token) {
-  const plugin = strapi.plugin('strapi-mcp-viz');
-  if (!plugin) return;
-  const config = plugin.service('config');
-  if (!config?.set) return;
   const mcpUrl = `http://localhost:${strapi.config.get('server.port', 1337)}/mcp`;
-  await config.set({ mcpUrl, adminToken: token });
-  console.log(`[seed] configured MCP Viz settings (mcpUrl=${mcpUrl})`);
+  const plugin = strapi.plugin('strapi-mcp-viz');
+  if (plugin?.service('config')?.set) {
+    await plugin.service('config').set({ mcpUrl, adminToken: token });
+    console.log(`[seed] configured MCP Viz settings (mcpUrl=${mcpUrl})`);
+  }
+  writeEnvToken(token);
+}
+
+const ENV_FILE = path.join(__dirname, '.env');
+const ENV_EXAMPLE_FILE = path.join(__dirname, '.env.example');
+
+/** Ensures .env exists, then pins MCP_VIZ_ADMIN_TOKEN so env never overrides with a stale value. */
+function writeEnvToken(token) {
+  if (!fs.existsSync(ENV_FILE)) {
+    fs.copyFileSync(ENV_EXAMPLE_FILE, ENV_FILE);
+    console.log('[seed] created .env from .env.example');
+  }
+  const line = `MCP_VIZ_ADMIN_TOKEN=${token}`;
+  const lines = fs.readFileSync(ENV_FILE, 'utf8').split('\n');
+  const index = lines.findIndex((l) => l.startsWith('MCP_VIZ_ADMIN_TOKEN='));
+  if (index >= 0) {
+    lines[index] = line;
+  } else {
+    lines.push(line);
+  }
+  fs.writeFileSync(ENV_FILE, `${lines.join('\n')}\n`);
+  console.log('[seed] pinned MCP_VIZ_ADMIN_TOKEN in .env');
 }
 
 async function main() {

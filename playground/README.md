@@ -61,11 +61,11 @@ categories and publish dates) so there is real data to ask about. It is
 idempotent — safe to re-run.
 
 It also creates a super-admin user (`admin@mcpviz.local` / `McpViz!12345`) and a
-read-only **admin API token**, writing the token's plaintext to `.mcp-token`,
-and **configures MCP Viz automatically** — it stores `mcpUrl` and `adminToken`
-in the plugin's settings, so the plugin works right after seeding (no manual
-copy). If you ever override via `MCP_VIZ_ADMIN_TOKEN` in `.env`, note that the
-env var wins over the stored value.
+read-only **admin API token**, and **configures MCP Viz automatically** — it
+stores `mcpUrl` + `adminToken` in the plugin's settings **and pins the token
+into `.env`** (`MCP_VIZ_ADMIN_TOKEN`), so the plugin works right after seeding
+with no manual copy. Re-running `seed.js` after a reset refreshes the pinned
+token in `.env`.
 
 ## Using the MCP server externally
 
