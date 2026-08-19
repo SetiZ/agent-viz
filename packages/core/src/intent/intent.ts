@@ -34,7 +34,7 @@ export const aggregationSpecSchema = z
   .object({
     fn: aggFnSchema,
     field: z.string().min(1).optional(),
-    groupBy: z.array(groupByFieldSchema).min(1).max(2).optional(),
+    groupBy: z.array(groupByFieldSchema).max(2).optional(),
     timeBucket: timeBucketSchema.optional(),
     top: z.number().int().positive().optional(),
   })
@@ -63,7 +63,7 @@ export const intentSchema = z
     timeRange: dateRangeSchema.optional(),
     filters: filterGroupSchema,
     aggregation: aggregationSpecSchema.optional(),
-    sort: z.array(sortFieldSchema).min(1).optional(),
+    sort: z.array(sortFieldSchema).optional(),
     limit: z.number().int().positive(),
   })
   .strip();

@@ -30,6 +30,10 @@ describe('aggregationSpecSchema', () => {
     expect(aggregationSpecSchema.safeParse(three).success).toBe(false);
   });
 
+  it('accepts an empty groupBy array', () => {
+    expect(aggregationSpecSchema.safeParse({ fn: 'count', groupBy: [] }).success).toBe(true);
+  });
+
   it('rejects "top" without groupBy or timeBucket', () => {
     expect(aggregationSpecSchema.safeParse({ fn: 'count', top: 5 }).success).toBe(false);
     expect(
@@ -73,6 +77,10 @@ describe('intentSchema', () => {
       intentSchema.safeParse({ ...validIntent(), sort: [{ field: 'views', dir: 'sideways' }] })
         .success,
     ).toBe(false);
+  });
+
+  it('accepts an empty sort array', () => {
+    expect(intentSchema.safeParse({ ...validIntent(), sort: [] }).success).toBe(true);
   });
 
   it('rejects an empty target uid', () => {
