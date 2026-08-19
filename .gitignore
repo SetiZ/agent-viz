@@ -5,6 +5,7 @@ coverage/
 *.log
 .env
 .env.*
+!playground/.env.example
 .DS_Store
 .tmp/
 *.db
