@@ -2,12 +2,12 @@ import { Readable } from 'node:stream';
 import type { Core } from '@strapi/strapi';
 import { serializeEvent, type SSEEvent } from '@mcp-viz/core/agent';
 
-interface AdminUser {
+export interface AdminUser {
   id: number | string;
   roles?: { name: string }[];
 }
 
-interface RunContext {
+export interface RunContext {
   request: { body?: Record<string, unknown> };
   state: { user?: AdminUser };
   set: (name: string, value: string) => void;

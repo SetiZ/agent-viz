@@ -1,6 +1,6 @@
 import type { Core } from '@strapi/strapi';
 
-interface ToolsContext {
+export interface ToolsContext {
   status: number;
   body: unknown;
 }

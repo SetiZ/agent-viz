@@ -6,7 +6,7 @@ const SAVED_QUERY_UID = 'plugin::strapi-mcp-viz.saved-query';
 type UpdateParams = NonNullable<Parameters<typeof strapi.entityService.update>[2]>;
 type EntityData = NonNullable<UpdateParams['data']>;
 
-interface QueryContext {
+export interface QueryContext {
   request: { body?: Record<string, unknown> };
   state: { user?: { id: number | string } };
   status: number;

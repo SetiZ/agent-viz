@@ -1,7 +1,7 @@
 import type { Core } from '@strapi/strapi';
 import { MASKED_SECRET, type Settings, type SettingsKey } from '../services/config';
 
-interface ConfigContext {
+export interface ConfigContext {
   request: { body?: Record<string, unknown> };
   status: number;
   body: unknown;
