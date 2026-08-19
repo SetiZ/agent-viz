@@ -17,6 +17,53 @@ interface RunContext {
 
 const SAVED_QUERY_UID = 'plugin::strapi-mcp-viz.saved-query';
 
+function logEvent(strapi: Core.Strapi, event: SSEEvent): void {
+  switch (event.type) {
+    case 'meta':
+      strapi.log.debug('run: question received', { runId: event.runId, question: event.question });
+      break;
+    case 'intent':
+      strapi.log.debug('run: intent parsed', event.intent);
+      break;
+    case 'plan':
+      strapi.log.debug('run: plan', {
+        contentType: event.plan.contentType,
+        tool: event.plan.steps[0]?.tool,
+        limit: event.plan.intent.limit,
+        steps: event.plan.steps,
+      });
+      break;
+    case 'tool_call':
+      strapi.log.debug('run: tool_call', { id: event.id, tool: event.tool, args: event.args });
+      break;
+    case 'tool_result':
+      strapi.log.debug('run: tool_result', {
+        id: event.id,
+        ok: event.ok,
+        records: event.records,
+      });
+      break;
+    case 'block':
+      strapi.log.debug('run: block', { type: event.block.type });
+      break;
+    case 'done':
+      strapi.log.debug('run: done', {
+        runId: event.runId,
+        blocks: event.response.blocks?.length ?? 0,
+        sources: event.response.sources?.length ?? 0,
+        caveats: event.response.caveats?.length ?? 0,
+      });
+      break;
+    case 'error':
+      strapi.log.error('run: error', {
+        runId: event.runId,
+        code: event.code,
+        message: event.message,
+      });
+      break;
+  }
+}
+
 export default ({ strapi }: { strapi: Core.Strapi }) => ({
   /**
    * Streams SSE events for an answer. Requires the `mcp-viz.run` permission
@@ -73,6 +120,7 @@ export default ({ strapi }: { strapi: Core.Strapi }) => ({
           .service('agent')
           .run({ question: resolvedQuestion, user: userContext });
         for await (const event of events) {
+          logEvent(strapi, event);
           stream.push(serializeEvent(event));
         }
       } catch (error) {

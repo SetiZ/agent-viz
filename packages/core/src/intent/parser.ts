@@ -41,17 +41,14 @@ export async function parseIntent(
 
   let content = await completeText(provider, userMessages);
   for (let attempt = 0; ; attempt++) {
-    const parsed = tryParseIntent(content);
-    if (parsed) return parsed;
+    const outcome = tryParseIntent(content);
+    if (outcome.ok) return { intent: outcome.intent, raw: content };
     if (attempt >= maxRepairs) {
-      throw new IntentParseError('model output was not a valid Intent after repairs');
+      throw new IntentParseError(describeFailure(outcome));
     }
     content = await completeText(provider, [
       ...userMessages,
-      {
-        role: 'system',
-        content: `Your previous answer was not valid. It must be a single JSON object matching the Intent schema. Previous answer:\n${content.slice(0, 2000)}`,
-      },
+      { role: 'system', content: buildRepairPrompt(content, outcome.issues) },
     ]);
   }
 }
@@ -67,12 +64,37 @@ async function completeText(
   return text;
 }
 
-function tryParseIntent(content: string): ParsedIntent | undefined {
+type IntentAttempt =
+  { ok: true; intent: Intent; raw: string } | { ok: false; issues: string[]; raw: string };
+
+function tryParseIntent(content: string): IntentAttempt {
   const json = extractJson(content);
-  if (json === undefined) return undefined;
+  if (json === undefined) return { ok: false, issues: [], raw: content };
   const result = intentSchema.safeParse(json);
-  if (!result.success) return undefined;
-  return { intent: result.data, raw: content };
+  if (!result.success) {
+    const issues = result.error.issues.map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join('.') : '(root)';
+      return `${path}: ${issue.message}`;
+    });
+    return { ok: false, issues, raw: content };
+  }
+  return { ok: true, intent: result.data, raw: content };
+}
+
+function buildRepairPrompt(previous: string, issues: string[]): string {
+  const detail =
+    issues.length > 0
+      ? `Validation problems with the previous answer:\n- ${issues.slice(0, 5).join('\n- ')}`
+      : 'The previous answer did not contain a JSON object.';
+  return `Your previous answer was not a valid Intent. ${detail}\nReturn only a single JSON object matching the Intent schema. Previous answer:\n${previous.slice(0, 2000)}`;
+}
+
+function describeFailure(attempt: IntentAttempt): string {
+  const issues = attempt.ok ? [] : attempt.issues;
+  const problem =
+    issues.length > 0 ? `validation issue: ${issues[0]}` : 'no JSON object found in model output';
+  const excerpt = attempt.raw.trim().slice(0, 300);
+  return `model output was not a valid Intent after repairs (${problem}). Raw output: ${excerpt.length > 0 ? excerpt : '(empty)'}`;
 }
 
 function extractJson(content: string): unknown {

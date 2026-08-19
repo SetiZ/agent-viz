@@ -13,7 +13,7 @@ export const contentTypeRefSchema = z
     uid: z.string().min(1),
     label: z.string().optional(),
   })
-  .strict();
+  .strip();
 
 export type ContentTypeRef = z.infer<typeof contentTypeRefSchema>;
 

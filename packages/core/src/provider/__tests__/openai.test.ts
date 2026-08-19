@@ -80,7 +80,34 @@ describe('createOpenAIProvider', () => {
       model: 'gpt-test',
       stream: true,
       messages: [{ role: 'user', content: 'how many?' }],
+      response_format: { type: 'json_object' },
     });
+  });
+
+  it('retries once without response_format when the endpoint rejects it', async () => {
+    const requests: string[] = [];
+    const fetchImpl = async (_input: URL | RequestInfo, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { response_format?: unknown };
+      requests.push(body.response_format ? 'json' : 'plain');
+      if (requests.length === 1) return new Response('unsupported', { status: 400 });
+      return new Response(sseStream([frame('{"ok":true}'), 'data: [DONE]\n\n']), {
+        status: 200,
+      });
+    };
+
+    const provider = createOpenAIProvider({
+      baseUrl: 'https://example.com/v1',
+      apiKey: 'sk-test',
+      model: 'gpt-test',
+      fetchImpl,
+    });
+
+    const chunks: string[] = [];
+    for await (const chunk of provider.streamText([{ role: 'user', content: 'x' }])) {
+      chunks.push(chunk);
+    }
+    expect(chunks.join('')).toBe('{"ok":true}');
+    expect(requests).toEqual(['json', 'plain']);
   });
 
   it('throws ProviderError on a non-OK response', async () => {

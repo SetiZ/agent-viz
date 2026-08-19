@@ -78,6 +78,14 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
 
       const registry = await plugin.service('mcp-client').getRegistry();
       const transport = await plugin.service('mcp-client').createTransport();
+
+      strapi.log.debug('agent: run', {
+        mcpUrl: config.mcpUrl,
+        model: config.llmModel,
+        adminTokenLength: config.adminToken.length,
+        contentTypes: registry.contentTypes().map((entry) => entry.uid),
+        readTools: registry.tools().map((entry) => entry.name),
+      });
       const data = new DataClient(transport, registry);
       const provider = createOpenAIProvider({
         baseUrl: config.llmBaseUrl,

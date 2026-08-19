@@ -6,6 +6,8 @@ export interface ChatMessage {
 export interface StreamTextOptions {
   temperature?: number;
   maxTokens?: number;
+  /** Request JSON mode on OpenAI-compatible endpoints. Defaults to the provider option. */
+  responseFormat?: 'json_object' | 'none';
 }
 
 /**

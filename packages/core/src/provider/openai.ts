@@ -7,6 +7,11 @@ export interface OpenAIProviderOptions {
   model: string;
   temperature?: number;
   maxTokens?: number;
+  /**
+   * Ask the endpoint for `response_format: { type: 'json_object' }`. Disabled
+   * automatically with a single retry when the endpoint rejects it (HTTP 400/422).
+   */
+  responseFormat?: 'json_object' | 'none';
   /** Injectable fetch for tests. */
   fetchImpl?: typeof fetch;
 }
@@ -15,24 +20,43 @@ export interface OpenAIProviderOptions {
 export function createOpenAIProvider(options: OpenAIProviderOptions): LLMProvider {
   const fetchImpl = options.fetchImpl ?? fetch;
   const url = `${options.baseUrl.replace(/\/+$/, '')}/chat/completions`;
+  const responseFormat = options.responseFormat ?? 'json_object';
 
   return {
     async *streamText(messages: ChatMessage[], streamOptions?: StreamTextOptions) {
-      const response = await fetchImpl(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${options.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: options.model,
-          messages,
-          stream: true,
-          temperature: streamOptions?.temperature ?? options.temperature ?? 0,
-          max_tokens: streamOptions?.maxTokens ?? options.maxTokens,
-        }),
-      });
+      const request = async (format: 'json_object' | 'none') => {
+        const response = await fetchImpl(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${options.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: options.model,
+            messages,
+            stream: true,
+            temperature: streamOptions?.temperature ?? options.temperature ?? 0,
+            max_tokens: streamOptions?.maxTokens ?? options.maxTokens,
+            ...(format === 'json_object' ? { response_format: { type: 'json_object' } } : {}),
+          }),
+        });
+        return response;
+      };
 
+      const format = streamOptions?.responseFormat ?? responseFormat;
+
+      let response = await request(format);
+      if (
+        !response.ok &&
+        format === 'json_object' &&
+        response.status !== 400 &&
+        response.status !== 422
+      ) {
+        throw new ProviderError(`provider returned HTTP ${response.status}`);
+      }
+      if (!response.ok && format === 'json_object') {
+        response = await request('none');
+      }
       if (!response.ok || !response.body) {
         throw new ProviderError(`provider returned HTTP ${response.status}`);
       }

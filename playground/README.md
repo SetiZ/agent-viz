@@ -85,3 +85,19 @@ point at it (the plugin is just one consumer). For example, in Claude Desktop:
 
 Note the MCP endpoint requires `Accept: application/json, text/event-stream`
 (the MCP SDK transports send this; raw curl needs it too).
+
+## Debugging
+
+The plugin logs each step of a run through Strapi's logger at `debug` level
+(question received, parsed intent, plan, each `tool_call`/`tool_result`, blocks,
+completion, and errors). To see them, enable verbose logging before boot:
+
+```bash
+STRAPI_LOG_LEVEL=debug npm run develop
+```
+
+You should then see lines like `run: intent parsed`, `run: plan`,
+`mcp: tools/list`, and `run: error` in the console. A failed request such as
+`Error: INTENT_PARSE_FAILED` in the UI now includes the first validation problem
+with the model and a raw excerpt of the output to help tune the LLM settings in
+Settings → MCP Viz.

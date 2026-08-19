@@ -80,6 +80,10 @@ export default ({ strapi }: { strapi: Core.Strapi }) => {
       const transport = await this.createTransport();
       try {
         const tools = await transport.listTools();
+        strapi.log.debug('mcp: tools/list', {
+          count: tools.length,
+          names: tools.map((tool) => tool.name),
+        });
         toolsCache = { tools, at: Date.now() };
         return tools;
       } finally {

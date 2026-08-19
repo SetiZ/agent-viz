@@ -16,7 +16,7 @@ export const aggFnSchema = z.enum(['count', 'sum', 'avg', 'min', 'max', 'distinc
 
 export type AggFn = z.infer<typeof aggFnSchema>;
 
-export const groupByFieldSchema = z.object({ field: z.string().min(1) }).strict();
+export const groupByFieldSchema = z.object({ field: z.string().min(1) }).strip();
 
 export type GroupByField = z.infer<typeof groupByFieldSchema>;
 
@@ -26,7 +26,7 @@ export const timeBucketSchema = z
     granularity: granularitySchema,
     timezone: z.string().min(1).optional(),
   })
-  .strict();
+  .strip();
 
 export type TimeBucket = z.infer<typeof timeBucketSchema>;
 
@@ -38,7 +38,7 @@ export const aggregationSpecSchema = z
     timeBucket: timeBucketSchema.optional(),
     top: z.number().int().positive().optional(),
   })
-  .strict()
+  .strip()
   .superRefine((spec, ctx) => {
     if (spec.fn !== 'count' && !spec.field) {
       ctx.addIssue({ code: 'custom', message: `aggregation "${spec.fn}" requires a field` });
@@ -52,7 +52,7 @@ export type AggregationSpec = z.infer<typeof aggregationSpecSchema>;
 
 export const sortFieldSchema = z
   .object({ field: z.string().min(1), dir: z.enum(['asc', 'desc']) })
-  .strict();
+  .strip();
 
 export type SortField = z.infer<typeof sortFieldSchema>;
 
@@ -66,7 +66,7 @@ export const intentSchema = z
     sort: z.array(sortFieldSchema).min(1).optional(),
     limit: z.number().int().positive(),
   })
-  .strict();
+  .strip();
 
 export type Intent = z.infer<typeof intentSchema>;
 

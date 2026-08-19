@@ -79,8 +79,11 @@ describe('intentSchema', () => {
     expect(intentSchema.safeParse({ ...validIntent(), target: { uid: '' } }).success).toBe(false);
   });
 
-  it('rejects unknown top-level keys (strict)', () => {
-    expect(intentSchema.safeParse({ ...validIntent(), rawSql: 'SELECT 1' }).success).toBe(false);
+  it('strips unknown top-level keys instead of rejecting (model-facing)', () => {
+    const result = intentSchema.safeParse({ ...validIntent(), rawSql: 'SELECT 1' });
+    expect(result.success).toBe(true);
+    expect(result.data).not.toHaveProperty('rawSql');
+    expect(result.data).toMatchObject({ kind: 'bar_chart', limit: 100 });
   });
 
   it('rejects an aggregation missing its required field', () => {

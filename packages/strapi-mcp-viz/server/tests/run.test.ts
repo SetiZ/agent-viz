@@ -35,6 +35,7 @@ function makeStrapi(events: AsyncIterable<SSEEvent>) {
   const run = vi.fn().mockResolvedValue(events);
   return {
     strapi: {
+      log: { debug: vi.fn(), error: vi.fn() },
       entityService: { findOne: vi.fn().mockResolvedValue({ question: 'saved question' }) },
       plugin: vi.fn().mockReturnValue({ service: vi.fn().mockReturnValue({ run }) }),
     },
