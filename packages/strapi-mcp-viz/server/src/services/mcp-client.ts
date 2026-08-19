@@ -25,6 +25,41 @@ export function permissionFor(_contentTypeUid: string): string {
   return 'plugin::content-manager.explorer.read';
 }
 
+/**
+ * Attribute keys that never appear in the content-manager model used to derive
+ * Strapi's MCP filter/sort schemas (lifecycle + creator columns). Timestamps
+ * (createdAt/updatedAt) are re-added by the content-manager model and ARE
+ * filterable, so they are not listed here.
+ */
+const MCP_NON_FILTERABLE_KEYS = new Set([
+  'id',
+  'documentId',
+  'publishedAt',
+  'createdBy',
+  'updatedBy',
+  'firstPublishedAt',
+]);
+
+/** Attribute types Strapi's MCP filter/sort schema treats as scalar. */
+const MCP_FILTERABLE_TYPES = new Set([
+  'string',
+  'text',
+  'richtext',
+  'email',
+  'password',
+  'uid',
+  'integer',
+  'biginteger',
+  'decimal',
+  'float',
+  'boolean',
+  'date',
+  'datetime',
+  'time',
+  'timestamp',
+  'enumeration',
+]);
+
 /** Extracts a planner-friendly schema from Strapi's content-type attributes. */
 export function contentTypeSchemas(strapi: Core.Strapi): ContentTypeSchema[] {
   const result: ContentTypeSchema[] = [];
@@ -43,10 +78,16 @@ export function contentTypeSchemas(strapi: Core.Strapi): ContentTypeSchema[] {
     for (const [name, raw] of Object.entries(ct.attributes)) {
       const attr = raw as { type?: string; enum?: unknown; target?: string } | undefined;
       if (!attr || typeof attr.type !== 'string') continue;
+      const filterable =
+        !MCP_NON_FILTERABLE_KEYS.has(name) &&
+        MCP_FILTERABLE_TYPES.has(attr.type) &&
+        attr.private !== true &&
+        attr.visible !== false;
       fields[name] = {
         type: attr.type as ContentTypeField['type'],
         ...(attr.enum !== undefined ? { enum: attr.enum as (string | number)[] } : {}),
         ...(attr.target !== undefined ? { target: attr.target } : {}),
+        ...(filterable ? { filterable: true } : { filterable: false }),
       };
     }
 

@@ -10,6 +10,9 @@ const strapi = {
         status: { type: 'enumeration', enum: ['draft', 'published'] },
         author: { type: 'relation', target: 'plugin::users-permissions.user' },
         body: { type: 'text' },
+        views: { type: 'integer' },
+        createdAt: { type: 'datetime' },
+        publishedAt: { type: 'datetime' },
       },
     },
     'api::author.author': {
@@ -33,18 +36,27 @@ describe('contentTypeSchemas', () => {
     expect(uids).toEqual(['api::article.article', 'api::author.author']);
   });
 
-  it('maps fields with type, enum, and target', () => {
+  it('maps fields with type, enum, target, and filterable', () => {
     const [article] = contentTypeSchemas(strapi);
     expect(article).toEqual({
       uid: 'api::article.article',
       label: 'Article',
       fields: {
-        title: { type: 'string' },
-        status: { type: 'enumeration', enum: ['draft', 'published'] },
-        author: { type: 'relation', target: 'plugin::users-permissions.user' },
-        body: { type: 'text' },
+        title: { type: 'string', filterable: true },
+        status: { type: 'enumeration', enum: ['draft', 'published'], filterable: true },
+        author: { type: 'relation', target: 'plugin::users-permissions.user', filterable: false },
+        body: { type: 'text', filterable: true },
+        views: { type: 'integer', filterable: true },
+        createdAt: { type: 'datetime', filterable: true },
+        publishedAt: { type: 'datetime', filterable: false },
       },
     });
+  });
+
+  it('marks lifecycle/creator and private fields as non-filterable', () => {
+    const [article] = contentTypeSchemas(strapi);
+    expect(article.fields.publishedAt).toMatchObject({ type: 'datetime', filterable: false });
+    expect(article.fields.author).toMatchObject({ filterable: false });
   });
 
   it('omits the label when displayName is missing', () => {

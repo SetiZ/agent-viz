@@ -8,12 +8,12 @@ const TOKEN_NAME = 'MCP Viz playground';
 const TOKEN_FILE = path.join(__dirname, '.mcp-token');
 
 const ARTICLES = [
-  { title: 'The future of headless CMS', body: 'A look at what comes next.', status: 'published', views: 342, author: 'Ada' },
-  { title: 'Strapi 5 in production', body: 'Scaling tips from real deployments.', status: 'published', views: 812, author: 'Grace' },
-  { title: 'Draft: agent tooling survey', body: 'Notes for an upcoming article.', status: 'draft', views: 0, author: 'Ada' },
-  { title: 'MCP for content teams', body: 'How model context protocol helps editors.', status: 'review', views: 25, author: 'Linus' },
-  { title: 'Review: vector search options', body: 'Comparing pgvector and Meilisearch.', status: 'review', views: 41, author: 'Grace' },
-  { title: 'Draft: SEO checklist 2026', body: 'An internal checklist.', status: 'draft', views: 0, author: 'Linus' },
+  { title: 'The future of headless CMS', body: 'A look at what comes next.', status: 'published', views: 342, author: 'Ada', publishedAt: '2025-11-14T09:00:00.000Z' },
+  { title: 'Strapi 5 in production', body: 'Scaling tips from real deployments.', status: 'published', views: 812, author: 'Grace', publishedAt: '2025-11-28T09:00:00.000Z' },
+  { title: 'Draft: agent tooling survey', body: 'Notes for an upcoming article.', status: 'draft', views: 0, author: 'Ada', publishedAt: '2026-02-10T09:00:00.000Z' },
+  { title: 'MCP for content teams', body: 'How model context protocol helps editors.', status: 'review', views: 25, author: 'Linus', publishedAt: '2026-02-24T09:00:00.000Z' },
+  { title: 'Review: vector search options', body: 'Comparing pgvector and Meilisearch.', status: 'review', views: 41, author: 'Grace', publishedAt: '2026-05-06T09:00:00.000Z' },
+  { title: 'Draft: SEO checklist 2026', body: 'An internal checklist.', status: 'draft', views: 0, author: 'Linus', publishedAt: '2026-05-19T09:00:00.000Z' },
 ];
 
 const readDisplayedContentTypeUids = (strapi) =>
@@ -73,15 +73,31 @@ async function ensureAdminToken(strapi, owner) {
 }
 
 async function ensureArticles(strapi) {
-  const count = await strapi.db.query('api::article.article').count();
-  if (count > 0) {
+  const uid = 'api::article.article';
+  const count = await strapi.db.query(uid).count();
+  if (count === 0) {
+    for (const { publishedAt, ...data } of ARTICLES) {
+      await strapi.entityService.create(uid, { data });
+    }
+    console.log(`[seed] seeded ${ARTICLES.length} articles`);
+  } else {
     console.log('[seed] articles already present');
-    return;
   }
-  for (const data of ARTICLES) {
-    await strapi.entityService.create('api::article.article', { data });
+
+  // Publish every article and stamp a deterministic publication date so
+  // "views per date of publication" has a real time axis (publishedAt is not
+  // filterable via Strapi MCP, but it IS present in the returned records).
+  const all = await strapi.db.query(uid).findMany({});
+  for (const article of all) {
+    const entry = ARTICLES.find((candidate) => candidate.title === article.title);
+    const publishedAt =
+      entry?.publishedAt ?? article.publishedAt ?? article.createdAt ?? new Date();
+    if (article.publishedAt === null) {
+      await strapi.entityService.publish(uid, article.id);
+    }
+    await strapi.db.query(uid).update({ where: { id: article.id }, data: { publishedAt } });
   }
-  console.log(`[seed] seeded ${ARTICLES.length} articles`);
+  console.log('[seed] published articles with publishedAt dates');
 }
 
 /** Configures MCP Viz (mcpUrl + adminToken) so the plugin works out of the box. */

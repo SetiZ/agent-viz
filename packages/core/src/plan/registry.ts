@@ -37,6 +37,13 @@ export interface ContentTypeField {
   /** Content type uid for relation fields. */
   target?: string;
   required?: boolean;
+  /**
+   * Whether Strapi's MCP tool accepts this field in `filters`/`sort`.
+   * `false` means the field is present in the returned records (usable for
+   * client-side aggregation, e.g. `publishedAt`) but cannot be used to query.
+   * `undefined` defaults to filterable.
+   */
+  filterable?: boolean;
 }
 
 export interface ContentTypeSchema {

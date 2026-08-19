@@ -7,6 +7,7 @@ import type { ContentTypeSchema, ContentTypeField, ToolDescriptor, ToolRegistry 
 export type PlanErrorCode =
   | 'UNKNOWN_CONTENT_TYPE'
   | 'UNKNOWN_FIELD'
+  | 'NOT_FILTERABLE'
   | 'INVALID_AGGREGATION'
   | 'INVALID_FILTER'
   | 'NO_READ_TOOL';
@@ -164,6 +165,20 @@ function assertKnownField(
   return entry;
 }
 
+function assertFilterable(
+  schema: ContentTypeSchema,
+  field: string,
+  entry: ContentTypeField,
+  context: string,
+): void {
+  if (entry.filterable === false) {
+    throw new PlanError(
+      'NOT_FILTERABLE',
+      `${context} references field "${field}" on "${schema.uid}" which cannot be used in Strapi MCP filters/sort (present in records but not queryable)`,
+    );
+  }
+}
+
 function normalizeFilters(
   group: FilterGroup,
   schema: ContentTypeSchema,
@@ -180,6 +195,7 @@ function normalizeFilters(
         return normalizeFilters(child, schema, limits, depth + 1);
       }
       assertKnownField(schema, child.field, 'filter');
+      assertFilterable(schema, child.field, schema.fields[child.field]!, 'filter');
       return child;
     }),
   };
@@ -241,6 +257,7 @@ function normalizeSort(
   const clamped = sort.slice(0, limits.maxSortFields);
   for (const entry of clamped) {
     assertKnownField(schema, entry.field, 'sort');
+    assertFilterable(schema, entry.field, schema.fields[entry.field]!, 'sort');
   }
   return clamped;
 }
@@ -248,13 +265,12 @@ function normalizeSort(
 function pickDateField(schema: ContentTypeSchema, preferred?: string): string | undefined {
   if (preferred) {
     const field = schema.fields[preferred];
-    if (field && DATE_TYPES.has(field.type)) return preferred;
+    if (field && field.filterable !== false && DATE_TYPES.has(field.type)) return preferred;
   }
-  for (const candidate of ['publishedAt', 'createdAt', 'updatedAt']) {
-    const field = schema.fields[candidate];
-    if (field && DATE_TYPES.has(field.type)) return candidate;
+  for (const [name, field] of Object.entries(schema.fields)) {
+    if (field.filterable !== false && DATE_TYPES.has(field.type)) return name;
   }
-  return Object.entries(schema.fields).find(([, field]) => DATE_TYPES.has(field.type))?.[0];
+  return undefined;
 }
 
 function buildRangeFilter(field: string, start?: string, end?: string): Filter | undefined {

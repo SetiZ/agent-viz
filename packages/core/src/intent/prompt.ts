@@ -15,6 +15,7 @@ export function buildIntentSystemPrompt(registry: ToolRegistry): string {
       name,
       type: field.type,
       enum: field.enum,
+      filterable: field.filterable !== false,
     })),
   }));
   const tools = registry.tools().map((tool) => ({
@@ -28,8 +29,8 @@ export function buildIntentSystemPrompt(registry: ToolRegistry): string {
     'Rules:',
     `- "kind" must be one of: ${BLOCK_TYPES.join(', ')}. Choose the presentation the user asked for.`,
     '- "target.uid" must be one of the content types below.',
-    '- "filters" may only reference fields that exist in the schema below, with whitelisted operators.',
-    '- "aggregation.fn" is usually "count". Use sum/avg/min/max only on numeric fields, groupBy only on scalar fields, timeBucket only on date/datetime fields.',
+    '- "filters" and "sort" may only reference fields with "filterable": true, with whitelisted operators. Fields with "filterable": false exist in the records but cannot be queried.',
+    '- "aggregation.fn" is usually "count". Use sum/avg/min/max only on numeric fields, groupBy only on scalar fields, timeBucket only on date/datetime fields. timeBucket may reference any date field, including non-filterable ones like "publishedAt".',
     '- "limit" is the maximum number of records to fetch; keep it small (default 100).',
     '- Only set "timeRange" when the question implies one.',
     '- The output must be a single JSON object matching the Intent schema. No markdown fences, no commentary.',

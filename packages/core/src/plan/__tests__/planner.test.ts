@@ -13,8 +13,8 @@ function makeRegistry(readTool = true): ToolRegistry {
       title: { type: 'string' },
       views: { type: 'number' },
       status: { type: 'enumeration', enum: ['draft', 'published'] },
-      publishedAt: { type: 'datetime' },
-      createdAt: { type: 'datetime' },
+      publishedAt: { type: 'datetime', filterable: false },
+      createdAt: { type: 'datetime', filterable: true },
       author: { type: 'relation', target: 'admin::user' },
       body: { type: 'richtext' },
     },
@@ -57,8 +57,8 @@ function makeStrapi52Registry(): ToolRegistry {
       title: { type: 'string' },
       views: { type: 'number' },
       status: { type: 'enumeration', enum: ['draft', 'published'] },
-      publishedAt: { type: 'datetime' },
-      createdAt: { type: 'datetime' },
+      publishedAt: { type: 'datetime', filterable: false },
+      createdAt: { type: 'datetime', filterable: true },
     },
   };
   const schemas = new Map<string, ContentTypeSchema>([[article.uid, article]]);
@@ -122,10 +122,63 @@ describe('planQuery', () => {
       granularity: 'month',
     });
     expect(plan.effectiveFilters.children).toContainEqual({
-      field: 'publishedAt',
+      field: 'createdAt',
       op: 'between',
       value: ['2026-08-01T00:00:00Z', '2026-08-31T23:59:59Z'],
     });
+  });
+
+  it('throws NOT_FILTERABLE for a filter on a non-filterable field', () => {
+    const run = () =>
+      planQuery(
+        baseIntent({
+          filters: {
+            op: 'and',
+            children: [{ field: 'publishedAt', op: 'isNotNull', value: null }],
+          },
+        }),
+        makeRegistry(),
+      );
+    try {
+      run();
+    } catch (error) {
+      expect((error as PlanError).code).toBe('NOT_FILTERABLE');
+      expect((error as PlanError).message).toMatch(/publishedAt/);
+    }
+  });
+
+  it('throws NOT_FILTERABLE for a sort on a non-filterable field', () => {
+    const run = () =>
+      planQuery(baseIntent({ sort: [{ field: 'publishedAt', dir: 'desc' }] }), makeRegistry());
+    try {
+      run();
+    } catch (error) {
+      expect((error as PlanError).code).toBe('NOT_FILTERABLE');
+    }
+  });
+
+  it('time-buckets by a non-filterable date field without filtering on it', () => {
+    const plan = planQuery(
+      baseIntent({
+        aggregation: {
+          fn: 'sum',
+          field: 'views',
+          timeBucket: { field: 'publishedAt', granularity: 'month' },
+        },
+        timeRange: { start: '2026-01-01T00:00:00Z' },
+      }),
+      makeRegistry(),
+    );
+    expect(plan.intent.aggregation?.timeBucket?.field).toBe('publishedAt');
+    expect(plan.dateRange).toEqual({ start: '2026-01-01T00:00:00Z' });
+    expect(plan.effectiveFilters.children).toContainEqual({
+      field: 'createdAt',
+      op: 'gte',
+      value: '2026-01-01T00:00:00Z',
+    });
+    expect(plan.effectiveFilters.children).not.toContainEqual(
+      expect.objectContaining({ field: 'publishedAt' }),
+    );
   });
 
   it('prefers the timeBucket field for the date-range merge', () => {
