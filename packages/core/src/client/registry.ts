@@ -92,7 +92,7 @@ function zodFromMcpSchema(schema?: Record<string, unknown>): z.ZodType<unknown> 
   }
 }
 
-/** Parses the JSON text content of a Strapi `list_*`/`get_*` tool response. */
+/** Parses the JSON text content of a Strapi `list_*` tool response. */
 export function parseFindResponse(text: string): { data: unknown[]; total?: number } {
   let json: unknown;
   try {
@@ -102,9 +102,15 @@ export function parseFindResponse(text: string): { data: unknown[]; total?: numb
   }
   if (!json || typeof json !== 'object') return { data: [] };
   const record = json as Record<string, unknown>;
-  const data = Array.isArray(record.data) ? record.data : [];
+  // Strapi MCP list tools return `{ results, pagination }`; the REST-style
+  // `{ data, meta: { pagination } }` is kept for legacy transports.
+  const data = Array.isArray(record.results)
+    ? record.results
+    : Array.isArray(record.data)
+      ? record.data
+      : [];
   const meta = (record.meta ?? {}) as Record<string, unknown>;
-  const pagination = (meta.pagination ?? {}) as Record<string, unknown>;
+  const pagination = (record.pagination ?? meta.pagination ?? {}) as Record<string, unknown>;
   const total = pagination.total;
   return typeof total === 'number' ? { data, total } : { data };
 }

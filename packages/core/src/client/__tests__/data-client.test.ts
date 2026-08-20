@@ -43,6 +43,14 @@ function pageResponse(items: { id: number }[], total: number): string {
   });
 }
 
+/** The actual Strapi MCP `list_*` response shape: flat `{ results, pagination }`. */
+function mcpListResponse(items: Record<string, unknown>[], total: number): string {
+  return JSON.stringify({
+    results: items,
+    pagination: { page: 1, pageSize: 100, pageCount: 1, total },
+  });
+}
+
 const user = { id: 7, roles: ['Admin'] };
 
 describe('DataClient.executeStep', () => {
@@ -65,6 +73,37 @@ describe('DataClient.executeStep', () => {
       truncated: false,
       user,
     });
+  });
+
+  it('parses the Strapi MCP list response shape ({ results, pagination })', async () => {
+    const transport: McpTransport = {
+      callTool: async () => ({
+        content: [
+          {
+            type: 'text',
+            text: mcpListResponse(
+              [
+                { id: 7, documentId: 'a', title: 'One', publishedAt: '2025-11-14T09:00:00.000Z' },
+                { id: 8, documentId: 'b', title: 'Two', publishedAt: '2025-11-28T09:00:00.000Z' },
+              ],
+              2,
+            ),
+          },
+        ],
+      }),
+      listTools: async () => [],
+      close: async () => {},
+    };
+    const client = new DataClient(transport, makeRegistry());
+    const result = await client.executeStep(makeStep(), { user });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.records).toEqual([
+      { id: 7, attributes: { documentId: 'a', title: 'One', publishedAt: '2025-11-14T09:00:00.000Z' } },
+      { id: 8, attributes: { documentId: 'b', title: 'Two', publishedAt: '2025-11-28T09:00:00.000Z' } },
+    ]);
+    expect(result.stats).toMatchObject({ recordsReturned: 2, recordsMatching: 2, truncated: false });
   });
 
   it('pages until the limit is reached', async () => {
