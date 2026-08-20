@@ -59,7 +59,8 @@ export class DataClient {
     const retrievedAt = new Date().toISOString();
 
     for (let iteration = 0; iteration < MAX_PAGES && records.length < target; iteration++) {
-      const args = { ...step.args, pagination: { ...step.args.pagination, page } };
+      const { pagination: pageSizeContainer, ...rest } = step.args;
+      const args = { ...rest, page, pageSize: pageSizeContainer.pageSize };
       let result;
       try {
         result = await this.transport.callTool(step.tool, args);

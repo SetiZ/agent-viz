@@ -47,7 +47,7 @@ describe('contentTypeSchemas', () => {
         author: { type: 'relation', target: 'plugin::users-permissions.user', filterable: false },
         body: { type: 'text', filterable: true },
         views: { type: 'integer', filterable: true },
-        createdAt: { type: 'datetime', filterable: true },
+        createdAt: { type: 'datetime', filterable: false },
         publishedAt: { type: 'datetime', filterable: false },
       },
     });
@@ -56,6 +56,7 @@ describe('contentTypeSchemas', () => {
   it('marks lifecycle/creator and private fields as non-filterable', () => {
     const [article] = contentTypeSchemas(strapi);
     expect(article.fields.publishedAt).toMatchObject({ type: 'datetime', filterable: false });
+    expect(article.fields.createdAt).toMatchObject({ type: 'datetime', filterable: false });
     expect(article.fields.author).toMatchObject({ filterable: false });
   });
 

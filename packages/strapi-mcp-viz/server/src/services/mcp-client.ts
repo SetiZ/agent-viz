@@ -27,14 +27,17 @@ export function permissionFor(_contentTypeUid: string): string {
 
 /**
  * Attribute keys that never appear in the content-manager model used to derive
- * Strapi's MCP filter/sort schemas (lifecycle + creator columns). Timestamps
- * (createdAt/updatedAt) are re-added by the content-manager model and ARE
- * filterable, so they are not listed here.
+ * Strapi's MCP filter/sort schemas (lifecycle + creator columns). Strapi does
+ * not inject timestamps into `strapi.contentTypes[uid].attributes`, so
+ * createdAt/updatedAt are absent from that model too — every one of these
+ * keys exists in the records but cannot be used as a Strapi MCP query key.
  */
 const MCP_NON_FILTERABLE_KEYS = new Set([
   'id',
   'documentId',
   'publishedAt',
+  'createdAt',
+  'updatedAt',
   'createdBy',
   'updatedBy',
   'firstPublishedAt',

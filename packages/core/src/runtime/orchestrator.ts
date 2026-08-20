@@ -1,4 +1,4 @@
-import { aggregateRecords, type ContentRecord } from '../aggregate';
+import { aggregateRecords, filterRecords, sortRecords, type ContentRecord } from '../aggregate';
 import type { StepResult } from '../client';
 import { parseIntent } from '../intent/parser';
 import { planQuery, type QueryPlan } from '../plan';
@@ -50,6 +50,13 @@ export class SimpleOrchestrator {
         records = result.records;
       }
       stages.push({ name: 'retrieve', ms: Date.now() - retrieveStart });
+
+      if (plan.clientFilters) {
+        records = filterRecords(records, plan.clientFilters);
+      }
+      if (plan.clientSort) {
+        records = sortRecords(records, plan.clientSort);
+      }
 
       const aggregateStart = Date.now();
       let aggregation: ReturnType<typeof aggregateRecords> | undefined;

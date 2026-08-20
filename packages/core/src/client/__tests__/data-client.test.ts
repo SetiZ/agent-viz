@@ -71,7 +71,7 @@ describe('DataClient.executeStep', () => {
     const calls: number[] = [];
     const transport: McpTransport = {
       callTool: async (_name, args) => {
-        const page = (args.pagination as { page: number }).page;
+        const page = args.page as number;
         calls.push(page);
         return {
           content: [{ type: 'text' as const, text: pageResponse([{ id: page }], 2) }],

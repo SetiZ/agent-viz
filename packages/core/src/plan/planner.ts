@@ -1,4 +1,4 @@
-import type { AggregationSpec, Intent } from '../intent';
+import type { AggregationSpec, Intent, SortField } from '../intent';
 import type { DateRange, Filter, FilterGroup } from '../spec';
 import { encodeFilters, encodeSort } from './encode';
 import { PLANNER_LIMITS, type PlannerLimits } from './limits';
@@ -24,6 +24,8 @@ export class PlanError extends Error {
 
 export interface PlanOptions {
   limits?: Partial<PlannerLimits>;
+  /** Document status to request from Strapi MCP list/get tools. Defaults to "published". */
+  status?: 'draft' | 'published';
 }
 
 export interface ToolCall {
@@ -36,6 +38,7 @@ export interface ToolCall {
     sort?: string[];
     pagination: { page: number; pageSize: number };
     fields?: string[];
+    status?: 'draft' | 'published';
   };
 }
 
@@ -44,7 +47,12 @@ export interface QueryPlan {
   permission: string;
   /** Effective intent after normalization, clamping and date-range merge. */
   intent: Intent;
+  /** Filters pushed to the data source (Strapi-filterable fields only). */
   effectiveFilters: FilterGroup;
+  /** Filters applied to fetched records in the engine (non-filterable date fields). */
+  clientFilters?: FilterGroup;
+  /** Sort applied to fetched records in the engine (non-filterable date fields). */
+  clientSort?: SortField[];
   dateRange?: DateRange;
   steps: ToolCall[];
 }
@@ -86,23 +94,24 @@ export function planQuery(
     throw new PlanError('NO_READ_TOOL', `no read tool for "${schema.uid}"`);
   }
 
-  const filters = normalizeFilters(intent.filters, schema, limits);
+  const splitFilters = normalizeFilters(intent.filters, schema, limits);
   if (intent.aggregation) {
     validateAggregation(intent.aggregation, schema);
   }
-  const sort = normalizeSort(intent.sort, schema, limits);
+  const splitSort = normalizeSort(intent.sort, schema, limits);
 
   const preferredDateField = intent.aggregation?.timeBucket?.field;
-  const { filters: effectiveFilters, dateRange } = mergeTimeRange(
-    filters,
-    intent.timeRange,
-    schema,
-    preferredDateField,
-  );
+  const merged = mergeTimeRange(splitFilters, intent.timeRange, schema, preferredDateField);
+
+  const serverFilters = merged.filters.server;
+  const clientFilters = merged.filters.client;
+  const effectiveFilters = combineGroups(serverFilters, clientFilters);
+  const combinedSort = [...splitSort.server, ...splitSort.client];
 
   const limit = clampLimit(intent.limit, limits.maxRecords);
   const pageSize = Math.min(limit, limits.maxPageSize);
   const fields = projectionFields(intent.aggregation);
+  const status = options.status ?? 'published';
 
   const step: ToolCall = {
     id: 'step-1',
@@ -110,9 +119,10 @@ export function planQuery(
     contentType: schema.uid,
     permission: tool.permission,
     args: {
-      filters: encodeFilters(effectiveFilters),
-      ...(sort.length > 0 ? { sort: encodeSort(sort) } : {}),
+      filters: encodeFilters(serverFilters),
+      ...(splitSort.server.length > 0 ? { sort: encodeSort(splitSort.server) } : {}),
       pagination: { page: 1, pageSize },
+      status,
       ...(fields.length > 0 ? { fields } : {}),
     },
   };
@@ -122,9 +132,9 @@ export function planQuery(
     target: { uid: schema.uid, label: schema.label ?? intent.target.label },
     filters: effectiveFilters,
     limit,
-    ...(dateRange ? { timeRange: dateRange } : {}),
+    ...(merged.dateRange ? { timeRange: merged.dateRange } : {}),
     ...(intent.aggregation ? { aggregation: intent.aggregation } : {}),
-    ...(sort.length > 0 ? { sort } : {}),
+    ...(combinedSort.length > 0 ? { sort: combinedSort } : {}),
   };
 
   return {
@@ -132,9 +142,15 @@ export function planQuery(
     permission: tool.permission,
     intent: effectiveIntent,
     effectiveFilters,
-    ...(dateRange ? { dateRange } : {}),
+    ...(clientFilters.children.length > 0 ? { clientFilters } : {}),
+    ...(splitSort.client.length > 0 ? { clientSort: splitSort.client } : {}),
+    ...(merged.dateRange ? { dateRange: merged.dateRange } : {}),
     steps: [step],
   };
+}
+
+function combineGroups(a: FilterGroup, b: FilterGroup): FilterGroup {
+  return { op: 'and', children: [...a.children, ...b.children] };
 }
 
 function findReadTool(registry: ToolRegistry, uid: string): ToolDescriptor | undefined {
@@ -165,18 +181,9 @@ function assertKnownField(
   return entry;
 }
 
-function assertFilterable(
-  schema: ContentTypeSchema,
-  field: string,
-  entry: ContentTypeField,
-  context: string,
-): void {
-  if (entry.filterable === false) {
-    throw new PlanError(
-      'NOT_FILTERABLE',
-      `${context} references field "${field}" on "${schema.uid}" which cannot be used in Strapi MCP filters/sort (present in records but not queryable)`,
-    );
-  }
+interface SplitFilters {
+  server: FilterGroup;
+  client: FilterGroup;
 }
 
 function normalizeFilters(
@@ -184,20 +191,35 @@ function normalizeFilters(
   schema: ContentTypeSchema,
   limits: PlannerLimits,
   depth = 0,
-): FilterGroup {
+): SplitFilters {
   if (depth > limits.maxFilterDepth) {
     throw new PlanError('INVALID_FILTER', 'filter group nesting exceeds the allowed depth');
   }
+  const server: (Filter | FilterGroup)[] = [];
+  const client: (Filter | FilterGroup)[] = [];
+  for (const child of group.children) {
+    if ('children' in child) {
+      const nested = normalizeFilters(child, schema, limits, depth + 1);
+      if (nested.server.children.length > 0) server.push(nested.server);
+      if (nested.client.children.length > 0) client.push(nested.client);
+      continue;
+    }
+    assertKnownField(schema, child.field, 'filter');
+    const entry = schema.fields[child.field]!;
+    if (entry.filterable !== false) {
+      server.push(child);
+    } else if (DATE_TYPES.has(entry.type)) {
+      client.push(child);
+    } else {
+      throw new PlanError(
+        'NOT_FILTERABLE',
+        `filter references field "${child.field}" on "${schema.uid}" which cannot be used in Strapi MCP filters/sort nor as a client-side date filter`,
+      );
+    }
+  }
   return {
-    op: group.op,
-    children: group.children.map((child) => {
-      if ('children' in child) {
-        return normalizeFilters(child, schema, limits, depth + 1);
-      }
-      assertKnownField(schema, child.field, 'filter');
-      assertFilterable(schema, child.field, schema.fields[child.field]!, 'filter');
-      return child;
-    }),
+    server: { op: group.op, children: server },
+    client: { op: group.op, children: client },
   };
 }
 
@@ -252,23 +274,47 @@ function normalizeSort(
   sort: Intent['sort'],
   schema: ContentTypeSchema,
   limits: PlannerLimits,
-): NonNullable<Intent['sort']> {
-  if (!sort) return [];
+): { server: SortField[]; client: SortField[] } {
+  if (!sort) return { server: [], client: [] };
   const clamped = sort.slice(0, limits.maxSortFields);
+  const server: SortField[] = [];
+  const client: SortField[] = [];
   for (const entry of clamped) {
     assertKnownField(schema, entry.field, 'sort');
-    assertFilterable(schema, entry.field, schema.fields[entry.field]!, 'sort');
+    const field = schema.fields[entry.field]!;
+    if (field.filterable !== false) {
+      server.push(entry);
+    } else if (DATE_TYPES.has(field.type)) {
+      client.push(entry);
+    } else {
+      throw new PlanError(
+        'NOT_FILTERABLE',
+        `sort references field "${entry.field}" on "${schema.uid}" which cannot be used in Strapi MCP filters/sort nor as a client-side date sort`,
+      );
+    }
   }
-  return clamped;
+  return { server, client };
 }
 
-function pickDateField(schema: ContentTypeSchema, preferred?: string): string | undefined {
+function pickDateField(
+  schema: ContentTypeSchema,
+  preferred?: string,
+): { field: string; filterable: boolean } | undefined {
   if (preferred) {
     const field = schema.fields[preferred];
-    if (field && field.filterable !== false && DATE_TYPES.has(field.type)) return preferred;
+    if (field && DATE_TYPES.has(field.type)) {
+      return { field: preferred, filterable: field.filterable !== false };
+    }
   }
   for (const [name, field] of Object.entries(schema.fields)) {
-    if (field.filterable !== false && DATE_TYPES.has(field.type)) return name;
+    if (field.filterable !== false && DATE_TYPES.has(field.type)) {
+      return { field: name, filterable: true };
+    }
+  }
+  for (const [name, field] of Object.entries(schema.fields)) {
+    if (field.filterable === false && DATE_TYPES.has(field.type)) {
+      return { field: name, filterable: false };
+    }
   }
   return undefined;
 }
@@ -287,21 +333,26 @@ function buildRangeFilter(field: string, start?: string, end?: string): Filter |
 }
 
 function mergeTimeRange(
-  filters: FilterGroup,
+  filters: SplitFilters,
   timeRange: DateRange | undefined,
   schema: ContentTypeSchema,
   preferredDateField: string | undefined,
-): { filters: FilterGroup; dateRange: DateRange | undefined } {
+): { filters: SplitFilters; dateRange: DateRange | undefined } {
   if (!timeRange) return { filters, dateRange: undefined };
   if (timeRange.start === undefined && timeRange.end === undefined) {
     return { filters, dateRange: timeRange };
   }
   const dateField = pickDateField(schema, preferredDateField);
   if (!dateField) return { filters, dateRange: undefined };
-  const rangeFilter = buildRangeFilter(dateField, timeRange.start, timeRange.end);
+  const rangeFilter = buildRangeFilter(dateField.field, timeRange.start, timeRange.end);
   if (!rangeFilter) return { filters, dateRange: timeRange };
+  const target: 'server' | 'client' = dateField.filterable ? 'server' : 'client';
+  const group = filters[target];
   return {
-    filters: { op: 'and', children: [...filters.children, rangeFilter] },
+    filters: {
+      ...filters,
+      [target]: { op: group.op, children: [...group.children, rangeFilter] },
+    },
     dateRange: timeRange,
   };
 }

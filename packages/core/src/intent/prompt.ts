@@ -29,7 +29,7 @@ export function buildIntentSystemPrompt(registry: ToolRegistry): string {
     'Rules:',
     `- "kind" must be one of: ${BLOCK_TYPES.join(', ')}. Choose the presentation the user asked for.`,
     '- "target.uid" must be one of the content types below.',
-    '- "filters" and "sort" may only reference fields with "filterable": true, with whitelisted operators. Fields with "filterable": false exist in the records but cannot be queried.',
+    '- "filters" and "sort" may reference fields with "filterable": true (pushed to Strapi). Date fields with "filterable": false (e.g. createdAt, updatedAt, publishedAt) may ALSO be used in "filters" and "sort" — they are applied to the fetched records afterwards. Other non-filterable fields cannot be used in "filters" or "sort".',
     '- "aggregation.fn" is usually "count". Use sum/avg/min/max only on numeric fields, groupBy only on scalar fields, timeBucket only on date/datetime fields. timeBucket may reference any date field, including non-filterable ones like "publishedAt".',
     '- "limit" is the maximum number of records to fetch; keep it small (default 100).',
     '- "sort" and "aggregation.groupBy" may be empty arrays or omitted entirely — never emit placeholder values.',
