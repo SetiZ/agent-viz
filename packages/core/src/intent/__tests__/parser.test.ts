@@ -86,6 +86,43 @@ describe('parseIntent', () => {
     expect(repairPrompt).toMatch(/kind:/);
   });
 
+  it('normalizes empty-object filters to the canonical empty group', async () => {
+    const json = JSON.parse(validIntentJson());
+    delete json.filters;
+    json.filters = {};
+    const provider = providerFor(JSON.stringify(json));
+
+    const { intent } = await parseIntent('how many views?', provider, makeRegistry());
+    expect(intent.filters).toEqual({ op: 'and', children: [] });
+  });
+
+  it('normalizes null filters to the canonical empty group', async () => {
+    const json = JSON.parse(validIntentJson());
+    json.filters = null;
+    const provider = providerFor(JSON.stringify(json));
+
+    const { intent } = await parseIntent('how many views?', provider, makeRegistry());
+    expect(intent.filters).toEqual({ op: 'and', children: [] });
+  });
+
+  it('normalizes omitted filters to the canonical empty group', async () => {
+    const json = JSON.parse(validIntentJson());
+    delete json.filters;
+    const provider = providerFor(JSON.stringify(json));
+
+    const { intent } = await parseIntent('how many views?', provider, makeRegistry());
+    expect(intent.filters).toEqual({ op: 'and', children: [] });
+  });
+
+  it('keeps real filters strict', async () => {
+    const json = JSON.parse(validIntentJson());
+    json.filters = { op: 'and', children: [{ field: 'views', op: 'gte', value: 50 }] };
+    const provider = providerFor(JSON.stringify(json));
+
+    const { intent } = await parseIntent('how many views?', provider, makeRegistry());
+    expect(intent.filters).toEqual(json.filters);
+  });
+
   it('throws INTENT_PARSE_FAILED with the first issue when repairs fail', async () => {
     const bad = JSON.stringify({ ...JSON.parse(validIntentJson()), kind: 'histogram' });
     const provider = providerFor(bad);

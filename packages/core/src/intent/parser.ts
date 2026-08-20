@@ -1,5 +1,6 @@
 import type { ToolRegistry } from '../plan';
 import type { LLMProvider } from '../provider';
+import { EMPTY_FILTER_GROUP } from '../spec';
 import { intentSchema, type Intent } from './intent';
 import { buildIntentSystemPrompt } from './prompt';
 
@@ -70,7 +71,7 @@ type IntentAttempt =
 function tryParseIntent(content: string): IntentAttempt {
   const json = extractJson(content);
   if (json === undefined) return { ok: false, issues: [], raw: content };
-  const result = intentSchema.safeParse(json);
+  const result = intentSchema.safeParse(normalizeIntentFilters(json));
   if (!result.success) {
     const issues = result.error.issues.map((issue) => {
       const path = issue.path.length > 0 ? issue.path.join('.') : '(root)';
@@ -79,6 +80,26 @@ function tryParseIntent(content: string): IntentAttempt {
     return { ok: false, issues, raw: content };
   }
   return { ok: true, intent: result.data, raw: content };
+}
+
+/**
+ * Models commonly express "no filters" as an empty object, null, or by
+ * omitting the key. The schema requires a full group, so normalize those
+ * cases to the canonical empty group. Anything with real filter shape is left
+ * untouched and validated strictly.
+ */
+function normalizeIntentFilters(json: unknown): unknown {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return json;
+  const candidate = json as Record<string, unknown>;
+  const filters = candidate.filters;
+  if (
+    filters === undefined ||
+    filters === null ||
+    (typeof filters === 'object' && !Array.isArray(filters) && Object.keys(filters).length === 0)
+  ) {
+    candidate.filters = EMPTY_FILTER_GROUP;
+  }
+  return candidate;
 }
 
 function buildRepairPrompt(previous: string, issues: string[]): string {
