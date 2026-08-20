@@ -19,11 +19,6 @@
     "body": {
       "type": "richtext"
     },
-    "status": {
-      "type": "enumeration",
-      "enum": ["draft", "review", "published"],
-      "default": "draft"
-    },
     "views": {
       "type": "integer",
       "default": 0,

@@ -8,12 +8,12 @@ const TOKEN_NAME = 'MCP Viz playground';
 const TOKEN_FILE = path.join(__dirname, '.mcp-token');
 
 const ARTICLES = [
-  { title: 'The future of headless CMS', body: 'A look at what comes next.', status: 'published', views: 342, author: 'Ada', publishedAt: '2025-11-14T09:00:00.000Z' },
-  { title: 'Strapi 5 in production', body: 'Scaling tips from real deployments.', status: 'published', views: 812, author: 'Grace', publishedAt: '2025-11-28T09:00:00.000Z' },
-  { title: 'Draft: agent tooling survey', body: 'Notes for an upcoming article.', status: 'draft', views: 0, author: 'Ada', publishedAt: '2026-02-10T09:00:00.000Z' },
-  { title: 'MCP for content teams', body: 'How model context protocol helps editors.', status: 'review', views: 25, author: 'Linus', publishedAt: '2026-02-24T09:00:00.000Z' },
-  { title: 'Review: vector search options', body: 'Comparing pgvector and Meilisearch.', status: 'review', views: 41, author: 'Grace', publishedAt: '2026-05-06T09:00:00.000Z' },
-  { title: 'Draft: SEO checklist 2026', body: 'An internal checklist.', status: 'draft', views: 0, author: 'Linus', publishedAt: '2026-05-19T09:00:00.000Z' },
+  { title: 'The future of headless CMS', body: 'A look at what comes next.', views: 342, author: 'Ada', publishedAt: '2025-11-14T09:00:00.000Z' },
+  { title: 'Strapi 5 in production', body: 'Scaling tips from real deployments.', views: 812, author: 'Grace', publishedAt: '2025-11-28T09:00:00.000Z' },
+  { title: 'Draft: agent tooling survey', body: 'Notes for an upcoming article.', views: 0, author: 'Ada', publishedAt: '2026-02-10T09:00:00.000Z' },
+  { title: 'MCP for content teams', body: 'How model context protocol helps editors.', views: 25, author: 'Linus', publishedAt: '2026-02-24T09:00:00.000Z' },
+  { title: 'Review: vector search options', body: 'Comparing pgvector and Meilisearch.', views: 41, author: 'Grace', publishedAt: '2026-05-06T09:00:00.000Z' },
+  { title: 'Draft: SEO checklist 2026', body: 'An internal checklist.', views: 0, author: 'Linus', publishedAt: '2026-05-19T09:00:00.000Z' },
 ];
 
 const readDisplayedContentTypeUids = (strapi) =>
