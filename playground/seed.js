@@ -77,7 +77,7 @@ async function ensureArticles(strapi) {
   const count = await strapi.db.query(uid).count();
   if (count === 0) {
     for (const { publishedAt, ...data } of ARTICLES) {
-      await strapi.entityService.create(uid, { data });
+      await strapi.documents(uid).create({ data });
     }
     console.log(`[seed] seeded ${ARTICLES.length} articles`);
   } else {
@@ -85,19 +85,42 @@ async function ensureArticles(strapi) {
   }
 
   // Publish every article and stamp a deterministic publication date so
-  // "views per date of publication" has a real time axis (publishedAt is not
-  // filterable via Strapi MCP, but it IS present in the returned records).
-  const all = await strapi.db.query(uid).findMany({});
-  for (const article of all) {
-    const entry = ARTICLES.find((candidate) => candidate.title === article.title);
-    const publishedAt =
-      entry?.publishedAt ?? article.publishedAt ?? article.createdAt ?? new Date();
-    if (article.publishedAt === null) {
-      await strapi.entityService.publish(uid, article.id);
-    }
-    await strapi.db.query(uid).update({ where: { id: article.id }, data: { publishedAt } });
+  // "views per date of publication" has a real time axis. publishedAt is not
+  // filterable via Strapi MCP, but it IS present in the returned records.
+  // A published document has two rows (draft + published), so group by
+  // documentId and only publish when no published row exists yet.
+  const rows = await strapi.db.query(uid).findMany({});
+  const byDocument = new Map();
+  for (const row of rows) {
+    const list = byDocument.get(row.documentId) ?? [];
+    list.push(row);
+    byDocument.set(row.documentId, list);
   }
-  console.log('[seed] published articles with publishedAt dates');
+
+  let publishedCount = 0;
+  for (const [documentId, docRows] of byDocument) {
+    const draft = docRows.find((row) => row.publishedAt === null);
+    const live = docRows.find((row) => row.publishedAt !== null);
+    const sample = draft ?? live;
+    const entry = ARTICLES.find((candidate) => candidate.title === sample?.title);
+    const publishedAt = entry?.publishedAt ?? live?.publishedAt ?? draft?.createdAt ?? new Date();
+
+    let liveRow = live;
+    if (draft && !liveRow) {
+      const result = await strapi.documents(uid).publish({ documentId });
+      liveRow = result?.entries?.find((doc) => doc.publishedAt !== null) ?? result?.entries?.[0];
+      publishedCount += 1;
+    }
+    if (liveRow) {
+      await strapi.db.query(uid).update({
+        where: { id: liveRow.id },
+        data: { publishedAt },
+      });
+    }
+  }
+  console.log(
+    `[seed] published ${publishedCount} article(s), stamped ${byDocument.size} publishedAt dates`,
+  );
 }
 
 /** Configures MCP Viz (mcpUrl + adminToken) so the plugin works out of the box. */
