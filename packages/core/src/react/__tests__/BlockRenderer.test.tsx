@@ -74,6 +74,22 @@ describe('BlockRenderer', () => {
     expect(bars[1]!.getAttribute('data-value')).toBe('1');
   });
 
+  it('renders a bar chart with visibly styled bars', () => {
+    const block: Block = {
+      type: 'bar_chart',
+      x: ['published', 'draft'],
+      series: [{ name: 'Articles', data: [2, 1] }],
+    };
+    render(<BlockRenderer blocks={[block]} sources={[]} />);
+    const plot = screen.getByTestId('bar-chart-plot');
+    expect(plot).not.toBeNull();
+    expect(plot.getAttribute('style')).toContain('display: flex');
+    const bars = screen.getAllByTestId('bar');
+    expect(bars).toHaveLength(2);
+    expect(bars[0]!.getAttribute('style')).toContain('background-color');
+    expect(bars[0]!.getAttribute('style')).toContain('width: 100%');
+  });
+
   it('renders a line chart with data points', () => {
     const block: Block = {
       type: 'line_chart',
@@ -81,8 +97,28 @@ describe('BlockRenderer', () => {
       series: [{ name: 'Views', data: [1, 3, 2] }],
     };
     render(<BlockRenderer blocks={[block]} sources={[]} />);
-    expect(screen.getByTestId('line-chart')).not.toBeNull();
+    const chart = screen.getByTestId('line-chart');
+    expect(chart).not.toBeNull();
+    const svg = chart.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('style')).toContain('width: 100%');
     expect(screen.getAllByTestId('line-point')).toHaveLength(3);
+  });
+
+  it('renders a pie chart with explicit dimensions', () => {
+    const block: Block = {
+      type: 'pie_chart',
+      data: [
+        { name: 'published', value: 2 },
+        { name: 'draft', value: 1 },
+      ],
+    };
+    render(<BlockRenderer blocks={[block]} sources={[]} />);
+    const chart = screen.getByTestId('pie-chart');
+    const svg = chart.querySelector('svg');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('width')).toBe('200');
+    expect(svg!.getAttribute('height')).toBe('200');
   });
 
   it('renders a pie chart with one slice per value', () => {

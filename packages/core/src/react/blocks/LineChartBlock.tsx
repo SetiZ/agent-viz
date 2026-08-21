@@ -14,9 +14,14 @@ export function LineChartBlock({ block }: { block: LineChartBlockType }) {
   const y = (value: number) => HEIGHT - PAD - ((value - min) / range) * (HEIGHT - PAD * 2);
 
   return (
-    <figure data-testid="line-chart">
-      {title && <figcaption>{title}</figcaption>}
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={title ?? 'Line chart'}>
+    <figure data-testid="line-chart" style={{ margin: 0 }}>
+      {title && <figcaption style={{ marginBottom: 8, fontWeight: 600 }}>{title}</figcaption>}
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        role="img"
+        aria-label={title ?? 'Line chart'}
+        style={{ width: '100%', height: 'auto', color: '#4945ff' }}
+      >
         {series.map((entry) => (
           <g key={entry.name} data-testid="line-series" data-series={entry.name}>
             <polyline

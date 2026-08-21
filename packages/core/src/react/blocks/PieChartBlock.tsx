@@ -10,9 +10,16 @@ export function PieChartBlock({ block }: { block: PieChartBlockType }) {
   let offset = 0;
 
   return (
-    <figure data-testid="pie-chart">
-      {title && <figcaption>{title}</figcaption>}
-      <svg viewBox="0 0 200 200" role="img" aria-label={title ?? 'Pie chart'}>
+    <figure data-testid="pie-chart" style={{ margin: 0 }}>
+      {title && <figcaption style={{ marginBottom: 8, fontWeight: 600 }}>{title}</figcaption>}
+      <svg
+        viewBox="0 0 200 200"
+        role="img"
+        aria-label={title ?? 'Pie chart'}
+        width={200}
+        height={200}
+        style={{ maxWidth: '100%', height: 'auto' }}
+      >
         <g transform="translate(100,100)">
           {total > 0 &&
             data.map((slice, index) => {
